@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Roll20 WYSIWYG</title>
+
+    <style>
+      :where(:root, :host) {
+        --animation-scale-up: scaleUp 150ms cubic-bezier(0.16, 1, 0.3, 1) normal;
+        --animation-fade-in: fadeIn 150ms cubic-bezier(0.16, 1, 0.3, 1) normal;
+        --color-black: #0d0d0d;
+        --color-blue: #00a3d1;
+        --color-charcoal: #1f1f1f;
+        --color-green: #00cc69;
+        --color-grey: #3e3e3e;
+        --color-orange: #ff9338;
+        --color-purple: #703faf;
+        --color-red: #ff2e1f;
+        --color-silver: #b4b4b4;
+        --color-white: #f5f5f5;
+        --color-yellow: #f8c630;
+        --duration-150: 150ms;
+        --duration-250: 250ms;
+        --duration-300: 300ms;
+        --duration-500: 500ms;
+        --easing-ease-in: cubic-bezier(0.4, 0, 1, 1);
+        --easing-ease-out: cubic-bezier(0, 0, 0.2, 1);
+        --easing-ease-out-quart: cubic-bezier(0.16, 1, 0.3, 1);
+        --easing-linear: cubic-bezier(0, 0, 1, 1);
+        --font-mono: 'IBM Plex Mono', Menlo, Consolas, Monaco, Liberation Mono,
+          Lucida Console, monospace;
+        --font-sans: 'Montserrat', system-ui, BlinkMacSystemFont, avenir next,
+          avenir, segoe ui, helvetica neue, helvetica, Ubuntu, roboto, noto,
+          arial, sans-serif;
+        --font-serif: 'Playfair Display', Iowan Old Style, Apple Garamond,
+          Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro,
+          serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol;
+        --font-size-h6: 0.7071rem;
+        --font-size-h5: 1rem;
+        --font-size-h4: 1.4142rem;
+        --font-size-h3: 2rem;
+        --font-size-h2: 2.8284rem;
+        --font-size-h1: 4rem;
+        --font-size-xs: 0.8409rem;
+        --font-size-sm: 1rem;
+        --font-size-md: 1.1892rem;
+        --font-size-lg: 1.4142rem;
+        --font-size-xl: 1.6818rem;
+        --line-height-body: 1.5;
+        --line-height-title: 1.25;
+        --line-height-element: 1;
+        --opacity-0: 0;
+        --opacity-5: 0.05;
+        --opacity-50: 0.5;
+        --opacity-75: 0.75;
+        --opacity-100: 1;
+        --radius-sm: 0.25rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 02rem;
+        --radius-half: 50%;
+        --radius-full: 100%;
+        --shadow-normal: 0 0.25rem 0.5rem 0 rgba(0, 0, 0, 0.5);
+        --shadow-glow: 0 0 16rem 0.125rem #f8c630;
+        --size-xs: 32rem;
+        --size-sm: 48rem;
+        --size-md: 64rem;
+        --size-lg: 80rem;
+        --size-xl: 96rem;
+        --z-index-behind: -1;
+        --z-index-base: 0;
+        --z-index-dropdown: 10;
+        --z-index-sticky: 20;
+        --z-index-fixed: 30;
+        --z-index-overlay: 40;
+        --z-index-tooltip: 50;
+        --z-index-popover: 60;
+        --z-index-toast: 70;
+        --z-index-modal: 80;
+        --breakpoint-xs: 512px;
+        --breakpoint-sm: 768px;
+        --breakpoint-md: 1024px;
+        --breakpoint-lg: 1280px;
+        --breakpoint-xl: 1536px;
+      }
+
+      html {
+        display: flex;
+
+        min-height: 100vh;
+        min-height: -webkit-fill-available;
+        min-height: 100dvh;
+        width: 100vw;
+        width: 100dvw;
+
+        font-family: sans-serif;
+        font-size: clamp(
+          var(--font-size-md),
+          0.7929rem + 0.6472vw,
+          var(--font-size-xl)
+        );
+        color: var(--color-white);
+        text-size-adjust: 100%;
+
+        color-scheme: light dark;
+        background: var(--color-black);
+
+        -webkit-font-smoothing: subpixel-antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      body {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+
+        margin: 0;
+
+        font-family: var(--font-sans);
+        font-size: var(--font-size-md);
+        font-weight: 400;
+        font-style: normal;
+        line-height: var(--line-height-body);
+      }
+
+      @keyframes fadeIn {
+        0% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+      @keyframes slideUpAndFade {
+        0% {
+          opacity: 0;
+          transform: translateY(0.125rem);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes slideRightAndFade {
+        0% {
+          opacity: 0;
+          transform: translateX(-0.125rem);
+        }
+        100% {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      @keyframes slideDownAndFade {
+        0% {
+          opacity: 0;
+          transform: translateY(-0.125rem);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes slideLeftAndFade {
+        0% {
+          opacity: 0;
+          transform: translateX(0.125rem);
+        }
+        100% {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      @keyframes scaleUp {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -48%) scale(0.96);
+        }
+        100% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app" class="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,97 @@
+@import 'the-new-css-reset/css/reset.css';
+@import './vars.scss';
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,200;0,400;0,600;0,700;1,200;1,400;1,700&display=swap');
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 800;
+  line-height: $line-height-title;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: $font-size-h1;
+}
+
+h2 {
+  font-size: $font-size-h2;
+}
+
+h3 {
+  font-size: $font-size-h3;
+}
+
+h4 {
+  font-size: $font-size-h4;
+}
+
+h5 {
+  font-size: $font-size-h5;
+}
+
+h6 {
+  font-size: $font-size-h6;
+}
+
+small {
+  font-size: $font-size-sm;
+}
+
+a {
+  color: $color-blue;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    text-decoration: underline;
+    outline: dotted 0.25em currentColor;
+    outline-offset: 0.25em;
+  }
+
+  &:visited {
+    color: $color-purple;
+  }
+}
+
+strong {
+  font-weight: 800;
+}
+
+em {
+  font-style: italic;
+}
+
+pre {
+  width: 100%;
+  word-break: break-word;
+  tab-size: 4;
+  white-space: pre-wrap;
+}
+
+dialog::backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: $color-black;
+  opacity: 0.75;
+  animation: none;
+}
+
+:where(dialog:modal) {
+  width: calc(100% - 1rem);
+  max-width: 40rem;
+  padding: 0.5rem;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: $color-black;
+    background-color: $color-white;
+  }
+}
