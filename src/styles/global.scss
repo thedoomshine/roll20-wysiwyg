@@ -75,6 +75,10 @@ pre {
   white-space: pre-wrap;
 }
 
+button {
+  cursor: pointer;
+}
+
 dialog::backdrop {
   position: fixed;
   inset: 0;

@@ -1,6 +1,5 @@
 <template>
   <component
-    v-if="icon"
     :is="icon"
     :class="clsx('icon', classes)"
     :role="role"
@@ -12,7 +11,7 @@
 
 <script setup lang="ts">
 import clsx from 'clsx'
-import { defineAsyncComponent } from 'vue'
+import { type CSSProperties, defineAsyncComponent } from 'vue'
 
 type PolyIconType = {
   classes?: string

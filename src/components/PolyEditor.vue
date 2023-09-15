@@ -1,10 +1,31 @@
 <template>
   <div class="editor__wrapper">
-    <EditorContent class="editor" :editor="editor" v-model="content" />
+    <PolyEditorToolbar
+      :editor="editor"
+      :editorId="randId"
+    />
+    <EditorContent
+      class="editor"
+      :editor="editor"
+      :id="randId"
+    />
+    <div class="editor__footer">
+      <a
+        class="logo__link"
+        href="https://roll20.net"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <img
+          class="logo"
+          src="../assets/logo.png"
+          alt="Roll20"
+      /></a>
+    </div>
   </div>
 </template>
 
-<script lang="ts">
+<script lang="ts" setup>
 import Color from '@tiptap/extension-color'
 import FontFamily from '@tiptap/extension-font-family'
 import Highlight from '@tiptap/extension-highlight'
@@ -17,13 +38,16 @@ import TextAlign from '@tiptap/extension-text-align'
 import TextStyle from '@tiptap/extension-text-style'
 import TextTypography from '@tiptap/extension-typography'
 import Underline from '@tiptap/extension-underline'
-import { EditorContent, type JSONContent, useEditor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
-import { defineProps } from 'vue'
+import { EditorContent, type JSONContent, useEditor } from '@tiptap/vue-3'
 import { debounce } from 'radash'
+import { ref } from 'vue'
+
+import PolyEditorToolbar from './PolyEditorToolbar.vue'
 
 const props = defineProps<{
   content?: JSONContent
+  setContentSource: (content: JSONContent) => void
 }>()
 
 const editor = useEditor({
@@ -54,24 +78,33 @@ const editor = useEditor({
     TextTypography,
     Underline,
   ],
-  content: props?.content || '',
+  content: props?.content || {},
   onUpdate: ({ editor }) => {
-    debounce({ delay: 100 }, () => {
-      setContentSource(editor.getJSON())
+    debounce({ delay: 500 }, () => {
+      props.setContentSource(editor.getJSON())
     })
   },
 })
+
+const dec2hex = (dec: number) => dec.toString(16).padStart(2, '0')
+
+const generateId = () => {
+  var arr = new Uint8Array(6)
+  window.crypto.getRandomValues(arr)
+  return Array.from(arr, dec2hex).join('')
+}
+
+const randId = ref(generateId())
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 @import '../styles/vars.scss';
 
 .editor__wrapper {
   display: flex;
-  /* width: 100%;
-  height: 0; */
-  flex: 1 1 auto;
   flex-direction: column;
+  width: 100%;
+  max-width: $size-sm;
 }
 
 .editor__footer {
@@ -92,6 +125,20 @@ const editor = useEditor({
   border-radius: $radius-md;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
+
+  .logo {
+    aspect-ratio: 23/25;
+    height: 2rem;
+
+    &__link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      &:hover {
+        opacity: 0.5;
+      }
+    }
+  }
 }
 
 .editor {
@@ -101,7 +148,7 @@ const editor = useEditor({
   flex: 1 1 auto;
   flex-direction: column;
 
-  padding: 0 1rem;
+  min-height: $size-xs;
 
   word-wrap: break-word;
   white-space: pre-wrap;
@@ -109,12 +156,12 @@ const editor = useEditor({
   border: solid 0.0625rem $color-grey;
 
   &:focus-within {
-    border-color: $color-yellow;
+    border-color: $color-silver;
   }
 
   .ProseMirror {
     height: 100%;
-    padding: 1rem 0;
+    padding: 1rem;
     p.is-editor-empty:first-child::before {
       pointer-events: none;
       content: attr(data-placeholder);
@@ -125,6 +172,7 @@ const editor = useEditor({
 
       color: $color-grey;
     }
+
     & > :first-child {
       margin-top: 0 !important;
     }

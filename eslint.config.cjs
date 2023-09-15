@@ -1,6 +1,6 @@
 /**
- * Name: eslint-config-diary
- * @type {import("eslint").Linter.Config}
+ * Name: eslint-config
+ * @type {import("eslint").Config}
  */
 module.exports = {
   extends: ['prettier'],
