@@ -1,9 +1,6 @@
 <template>
   <div class="editor__wrapper">
-    <PolyEditorToolbar
-      :editor="editor"
-      :editorId="randId"
-    />
+    <PolyEditorToolbar :editorId="randId" />
     <EditorContent
       class="editor"
       :editor="editor"
@@ -39,9 +36,9 @@ import TextStyle from '@tiptap/extension-text-style'
 import TextTypography from '@tiptap/extension-typography'
 import Underline from '@tiptap/extension-underline'
 import StarterKit from '@tiptap/starter-kit'
-import { EditorContent, type JSONContent, useEditor } from '@tiptap/vue-3'
-import { debounce } from 'radash'
-import { ref } from 'vue'
+import { Editor, EditorContent, type JSONContent } from '@tiptap/vue-3'
+import { debounce, uid } from 'radash'
+import { onBeforeUnmount, provide, readonly, ref } from 'vue'
 
 import PolyEditorToolbar from './PolyEditorToolbar.vue'
 
@@ -50,7 +47,7 @@ const props = defineProps<{
   setContentSource: (content: JSONContent) => void
 }>()
 
-const editor = useEditor({
+const editor = new Editor({
   extensions: [
     Color,
     FontFamily,
@@ -62,13 +59,13 @@ const editor = useEditor({
     }),
     Mention,
     Placeholder.configure({
-      placeholder: 'tell us all about it',
+      placeholder: '[this space left intentionally blank]',
     }),
     Subscript,
     Superscript,
     StarterKit.configure({
       heading: {
-        levels: [1, 2, 3],
+        levels: [1, 2, 3, 4, 5],
       },
     }),
     TextAlign.configure({
@@ -78,7 +75,7 @@ const editor = useEditor({
     TextTypography,
     Underline,
   ],
-  content: props?.content || {},
+  content: props?.content,
   onUpdate: ({ editor }) => {
     debounce({ delay: 500 }, () => {
       props.setContentSource(editor.getJSON())
@@ -86,15 +83,11 @@ const editor = useEditor({
   },
 })
 
-const dec2hex = (dec: number) => dec.toString(16).padStart(2, '0')
+onBeforeUnmount(() => editor.destroy())
 
-const generateId = () => {
-  var arr = new Uint8Array(6)
-  window.crypto.getRandomValues(arr)
-  return Array.from(arr, dec2hex).join('')
-}
+const randId = ref(uid(12))
 
-const randId = ref(generateId())
+provide('editor', readonly(editor))
 </script>
 
 <style lang="scss">

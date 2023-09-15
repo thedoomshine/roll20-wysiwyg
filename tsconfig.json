@@ -20,7 +20,13 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "allowSyntheticDefaultImports": true,
-    "plugins": [{ "name": "ts-vue-plugin" }]
+    "plugins": [{ "name": "ts-vue-plugin" }],
+
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["src/*"],
+      "@tiptap/core": ["node_modules/@tiptap/core/src/index"]
+    }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
   "references": [{ "path": "./tsconfig.node.json" }]

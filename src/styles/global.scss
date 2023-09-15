@@ -87,6 +87,12 @@ dialog::backdrop {
   animation: none;
 }
 
+input {
+  border: solid 1px $color-grey;
+  border-radius: $radius-sm;
+  padding: 0.25rem;
+}
+
 :where(dialog:modal) {
   width: calc(100% - 1rem);
   max-width: 40rem;

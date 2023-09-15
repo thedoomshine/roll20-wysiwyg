@@ -3,6 +3,7 @@
     :is="icon"
     :class="clsx('icon', classes)"
     :role="role"
+    :style="style"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -15,7 +16,7 @@ import { type CSSProperties, defineAsyncComponent } from 'vue'
 
 type PolyIconType = {
   classes?: string
-  style?: Record<string, CSSProperties>
+  style?: Record<string, CSSProperties | string>
   role?: string
   name: string
 }
