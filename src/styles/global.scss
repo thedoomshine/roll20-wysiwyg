@@ -2,6 +2,12 @@
 @import './vars.scss';
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,200;0,400;0,600;0,700;1,200;1,400;1,700&display=swap');
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 h1,
 h2,
 h3,
@@ -51,7 +57,7 @@ a {
 
   &:focus-visible {
     text-decoration: underline;
-    outline: dotted 0.25em currentColor;
+    outline: dotted 0.25em $color-focus;
     outline-offset: 0.25em;
   }
 
@@ -88,7 +94,7 @@ dialog::backdrop {
 }
 
 input {
-  border: solid 1px $color-grey;
+  border: solid 1px $color-tertiary;
   border-radius: $radius-sm;
   padding: 0.25rem;
 }
@@ -97,11 +103,4 @@ input {
   width: calc(100% - 1rem);
   max-width: 40rem;
   padding: 0.5rem;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: $color-black;
-    background-color: $color-white;
-  }
 }

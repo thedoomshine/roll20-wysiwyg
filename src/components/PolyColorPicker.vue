@@ -1,7 +1,7 @@
 <template>
   <Popover class="color-picker">
     <PopoverButton
-      :style="{ '--color': selectedColor.value }"
+      :style="{ '--color': modelValue.value }"
       :class="clsx(buttonClass, 'popover__button')"
     >
       <slot />
@@ -9,46 +9,43 @@
 
     <PopoverPanel
       class="color-picker__popover-panel"
-      :style="{ '--active-color': selectedColor.value }"
+      :style="{ '--active-color': modelValue.value }"
     >
       <div
-        class="swatch__active"
-        :style="{ color: activeTextColor }"
+        :class="[
+          'swatch__active',
+          {
+            transparent: modelValue.value === 'transparent',
+          },
+        ]"
+        :style="{
+          color: activeTextColor,
+        }"
       >
-        {{ selectedColor.value }}
+        {{ modelValue.value }}
       </div>
       <div
         class="swatch__wrapper"
         role="radiogroup"
       >
         <button
-          v-for="(color, index) in allColors"
+          v-for="color in allColors"
           :key="color.name"
           :style="{ 'background-color': color.value }"
           :class="
-            clsx([
-              color.value === selectedColor.value && 'active',
-              'swatch',
-              color.value === 'transparent' && 'transparent',
-            ])
+            clsx('swatch', {
+              active: color.value === modelValue.value,
+              transparent: color.value === 'transparent',
+            })
           "
-          :aria-checked="color.value === selectedColor.value"
-          :tabindex="index < 1 ? 0 : -1"
+          :aria-checked="color.value === modelValue.value"
+          @click="() => $emit('update:modelValue', color)"
           type="button"
           role="radio"
         >
           <span class="sr-only">{{ color.name }}</span>
         </button>
       </div>
-
-      <input
-        type="text"
-        name="active-color"
-        class="color-picker__text-input"
-        :value="tempColor"
-        @input="handleInput"
-        @onKeyDown.enter="handleInputSubmit"
-      />
     </PopoverPanel>
   </Popover>
 </template>
@@ -57,14 +54,20 @@
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue'
 import clsx from 'clsx'
 import { meetsContrastGuidelines } from 'polished'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 
 import { COLORS, colors } from '~/constants'
+
+defineEmits(['update:modelValue'])
 
 const props = withDefaults(
   defineProps<{
     buttonClass?: string
     transparent?: boolean
+    modelValue?: {
+      name: string
+      value: string
+    }
   }>(),
   {
     transparent: false,
@@ -78,23 +81,13 @@ const allColors = computed(() => {
   }
   return c
 })
-const selectedColor = ref(allColors.value[0])
-const tempColor = ref(selectedColor.value.value)
+const modelValue = computed(() => props.modelValue ?? allColors.value[0])
 
 const activeTextColor = computed(() =>
-  meetsContrastGuidelines(selectedColor.value.value, COLORS.white).AAA
-    ? 'var(--color-white)'
-    : 'var(--color-black)'
+  meetsContrastGuidelines(COLORS.black, modelValue.value.value).AAA
+    ? 'var(--color-black)'
+    : 'var(--color-white)'
 )
-
-const handleInput = (event: Event) => {
-  const el = event.target as HTMLInputElement
-  tempColor.value = el.value
-}
-
-const handleInputSubmit = () => {
-  selectedColor.value = tempColor.value
-}
 </script>
 
 <style lang="scss">
@@ -122,8 +115,8 @@ const handleInputSubmit = () => {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background-color: $color-black;
-    border: 1px solid $color-grey;
+    background-color: $color-primary;
+    border: 1px solid $color-tertiary;
     text-transform: uppercase;
     position: absolute;
     z-index: $z-index-popover;
@@ -151,7 +144,7 @@ const handleInputSubmit = () => {
 
     &::before {
       top: -24px;
-      border-bottom-color: $color-grey;
+      border-bottom-color: $color-tertiary;
       border-width: 12px;
       margin-left: -12px;
       margin-bottom: -2px;
@@ -168,6 +161,7 @@ const handleInputSubmit = () => {
     display: flex;
     align-items: center;
     justify-content: center;
+    font-weight: 800;
 
     aspect-ratio: 2 / 1;
     width: 100%;
@@ -185,7 +179,7 @@ const handleInputSubmit = () => {
   }
 
   .swatch {
-    border: 1px solid $color-grey;
+    border: 1px solid $color-tertiary;
     border-radius: $radius-sm;
     aspect-ratio: 1/1;
     width: 100%;
@@ -195,6 +189,18 @@ const handleInputSubmit = () => {
     transition-duration: $duration-150;
     transition-property: transform;
 
+    &.active {
+      outline: solid 0.125rem $color-focus;
+      outline-offset: 0.0625rem;
+    }
+
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+
+  .swatch,
+  .swatch__active {
     &.transparent {
       background-image: conic-gradient(
         $color-white 0 25%,
@@ -205,15 +211,7 @@ const handleInputSubmit = () => {
 
       background-size: 1rem 1rem;
       background-position: center;
-    }
-
-    &.active {
-      outline: solid 0.125rem $color-yellow;
-      outline-offset: 0.0625rem;
-    }
-
-    &:hover {
-      transform: scale(1.1);
+      color: $color-black !important;
     }
   }
 }

@@ -1,9 +1,9 @@
 <template>
   <div
+    :aria-controls="editorId"
+    aria-label="Text Formatting"
     class="toolbar"
     role="toolbar"
-    aria-label="Text Formatting"
-    :aria-controls="editorId"
   >
     <!-- font family picker : START -->
     <div class="group listbox">
@@ -14,9 +14,10 @@
         "
       >
         <ListboxButton
-          class="toolbar__button listbox__button"
           v-slot="{ value }"
           :style="`font-family: ${attributes.fontFamily.value};`"
+          class="toolbar__button listbox__button"
+          z-index="0"
         >
           <span>
             {{ value.name }}
@@ -29,18 +30,21 @@
         <ListboxOptions class="listbox__options">
           <ListboxOption
             v-for="font in fontFamilies"
-            v-slot="{ selected }"
+            v-slot="{ active, selected }"
+            as="template"
             :key="font.name"
             :style="`font-family: ${font.value};`"
             :value="font"
           >
-            <PolyIcon
-              v-if="selected"
-              class="icon__selected"
-              name="check"
-              aria-hidden="true"
-            />
-            {{ font.name }}
+            <li :class="clsx({ active })">
+              {{ font.name }}
+              <PolyIcon
+                v-if="selected"
+                class="icon__selected"
+                name="check"
+                aria-hidden="true"
+              />
+            </li>
           </ListboxOption>
         </ListboxOptions>
       </Listbox>
@@ -58,6 +62,7 @@
         <ListboxButton
           class="toolbar__button listbox__button"
           v-slot="{ value }"
+          z-index="-1"
         >
           <span>
             {{ value.name }}
@@ -70,7 +75,8 @@
         <ListboxOptions class="listbox__options">
           <ListboxOption
             v-for="fontSize in fontSizes"
-            v-slot="{ selected }"
+            v-slot="{ active, selected }"
+            as="template"
             :key="fontSize.name"
             :value="fontSize"
             :style="{
@@ -78,13 +84,15 @@
               'font-weight': getFontWeight(fontSize.value),
             }"
           >
-            <PolyIcon
-              v-if="selected"
-              class="icon__selected"
-              name="check"
-              aria-hidden="true"
-            />
-            {{ fontSize.name }}
+            <li :class="clsx({ active })">
+              {{ fontSize.name }}
+              <PolyIcon
+                v-if="selected"
+                class="icon__selected"
+                name="check"
+                aria-hidden="true"
+              />
+            </li>
           </ListboxOption>
         </ListboxOptions>
       </Listbox>
@@ -93,7 +101,11 @@
 
     <div class="group text-color">
       <!-- text color picker : START -->
-      <PolyColorPicker buttonClass="toolbar__button">
+      <PolyColorPicker
+        :modelValue="attributes.textColor"
+        @update:modelValue="handleTextColorChange"
+        buttonClass="toolbar__button"
+      >
         <PolyIcon
           slot="icon"
           name="text-color"
@@ -105,6 +117,8 @@
 
       <!-- text highlight color picker : START -->
       <PolyColorPicker
+        :modelValue="attributes.textHighlight"
+        @update:modelValue="handleTextHighlightChange"
         buttonClass="toolbar__button"
         transparent
       >
@@ -126,7 +140,6 @@
         type="button"
         class="toolbar__button item bold popup"
         value="bold"
-        tabindex="-1"
       >
         <PolyIcon
           name="text-bold"
@@ -140,7 +153,6 @@
         type="button"
         class="toolbar__button item italic popup"
         value="italic"
-        tabindex="-1"
       >
         <PolyIcon
           name="text-italic"
@@ -154,7 +166,6 @@
         type="button"
         class="toolbar__button item strikethrough popup"
         value="strikethrough"
-        tabindex="-1"
       >
         <PolyIcon
           name="text-strike"
@@ -168,7 +179,6 @@
         type="button"
         class="toolbar__button item underline popup"
         value="underline"
-        tabindex="-1"
       >
         <PolyIcon
           name="text-underline"
@@ -191,7 +201,6 @@
         type="button"
         role="radio"
         class="toolbar__button item align-left popup"
-        tabindex="-1"
       >
         <PolyIcon
           name="align-left"
@@ -205,7 +214,6 @@
         type="button"
         role="radio"
         class="toolbar__button item align-center popup"
-        tabindex="-1"
       >
         <PolyIcon
           name="align-center"
@@ -219,7 +227,6 @@
         type="button"
         role="radio"
         class="toolbar__button item align-right popup"
-        tabindex="-1"
       >
         <PolyIcon
           name="align-right"
@@ -233,7 +240,6 @@
         type="button"
         role="radio"
         class="toolbar__button item align-justify popup"
-        tabindex="-1"
       >
         <PolyIcon
           name="align-justify"
@@ -255,7 +261,6 @@
         type="button"
         role="radio"
         class="toolbar__button item list-ordered popup"
-        tabindex="-1"
       >
         <PolyIcon
           name="list-ordered"
@@ -269,7 +274,6 @@
         type="button"
         role="radio"
         class="toolbar__button item list-bullet popup"
-        tabindex="-1"
       >
         <PolyIcon
           name="list-bullet"
@@ -290,7 +294,6 @@
         type="button"
         class="toolbar__button item list-indent popup"
         value="indent"
-        tabindex="-1"
       >
         <PolyIcon
           name="list-indent"
@@ -303,7 +306,6 @@
         :disabled="!attributes.canLift"
         type="button"
         class="toolbar__button item list-outdent popup"
-        tabindex="-1"
       >
         <PolyIcon
           name="list-outdent"
@@ -320,7 +322,6 @@
         type="button"
         class="toolbar__button item clear popup"
         value="clear"
-        tabindex="0"
       >
         <PolyIcon
           name="format-clear"
@@ -342,6 +343,8 @@ import {
 } from '@headlessui/vue'
 import { type EditorEvents } from '@tiptap/core'
 import { type Editor } from '@tiptap/vue-3'
+import { useDark } from '@vueuse/core'
+import clsx from 'clsx'
 import { inject, reactive } from 'vue'
 
 import {
@@ -358,6 +361,8 @@ import {
 import PolyColorPicker from './PolyColorPicker.vue'
 import PolyIcon from './PolyIcon.vue'
 import PolyPopupLabel from './PolyPopupLabel.vue'
+
+const isDark = useDark()
 
 const editor = inject<Editor>('editor')
 const attributes = reactive<{
@@ -376,8 +381,8 @@ const attributes = reactive<{
 }>({
   fontFamily: fontFamilies[0],
   fontSize: fontSizes[0],
-  textColor: colors[0],
-  textHighlight: colors[0],
+  textColor: isDark.value ? colors[0] : colors[4],
+  textHighlight: { name: 'transparent', value: 'transparent' },
   bold: false,
   italic: false,
   strikethrough: false,
@@ -402,6 +407,14 @@ const handleFontFamilyChange = (font: FontFamily) => {
   return editor?.chain().focus().setFontFamily(font).run()
 }
 
+const handleTextColorChange = (color: ColorObj) => {
+  return editor?.chain().focus().setColor(color.value).run()
+}
+
+const handleTextHighlightChange = (color: ColorObj) => {
+  return editor?.chain().focus().setHighlight({ color: color.value }).run()
+}
+
 const updateAttributes = ({ editor }: EditorEvents['transaction']) => {
   attributes.fontFamily =
     fontFamilies.find(
@@ -414,12 +427,12 @@ const updateAttributes = ({ editor }: EditorEvents['transaction']) => {
     ) || fontSizes[0]
 
   attributes.textColor =
-    colors.find(
-      (color) => color.value === editor.getAttributes('textStyle').color
-    ) || colors[0]
+    colors.find((color) =>
+      editor.isActive('textStyle', { color: color.value })
+    ) || (isDark.value ? colors[0] : colors[4])
 
-  attributes.textHighlight = colors.find(
-    (color) => color.value === editor.getAttributes('highlight').backgroundColor
+  attributes.textHighlight = colors.find((color) =>
+    editor.isActive('highlight', { color: color.value })
   ) || { name: 'transparent', value: 'transparent' }
 
   attributes.bold = editor.isActive('bold')
@@ -456,17 +469,17 @@ defineProps<{
 .toolbar {
   display: flex;
   flex-flow: row wrap;
-  border: solid 0.0625rem $color-grey;
+  border: solid 0.0625rem $color-tertiary;
   border-bottom-color: transparent;
   border-radius: $radius-sm;
   border-bottom-right-radius: 0;
   border-bottom-left-radius: 0;
   padding: 0.5rem;
-  background-color: $color-charcoal;
+  background-color: $color-secondary;
   gap: 0.75rem;
 
   &:focus-within {
-    border-color: $color-white;
+    border-color: $color-focus;
   }
 
   .group {
@@ -476,35 +489,36 @@ defineProps<{
   }
 
   .toolbar__button {
-    border: 1px solid $color-black;
+    border: 1px solid $color-primary;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0.5rem;
     border-radius: $radius-sm;
     text-align: center;
-    background: $color-black;
+    background: $color-background;
     position: relative;
     line-height: $line-height-element;
 
-    &:hover {
-      background-color: $color-charcoal;
-    }
-
     &[aria-pressed='true'],
     [role='radio'][aria-checked='true'] {
-      border-color: $color-white;
+      border-color: $color-primary;
+      background-color: $color-secondary;
+    }
+
+    &:hover {
+      background-color: $color-secondary;
     }
 
     &:disabled,
     &[aria-disabled='true'] {
-      color: $color-grey;
-      background-color: $color-charcoal;
+      color: $color-tertiary;
+      background-color: $color-secondary;
       cursor: not-allowed;
     }
 
-    &::-moz-focus-inner {
-      border: 0;
+    &:focus {
+      border-color: $color-focus;
     }
   }
 
@@ -515,17 +529,18 @@ defineProps<{
     padding-bottom: 0;
 
     button {
-      background-color: $color-charcoal;
+      background-color: $color-secondary;
       font-size: 0.5em;
 
       &:hover {
-        background-color: $color-grey;
+        background-color: $color-tertiary;
       }
     }
   }
 
   .listbox {
     position: relative;
+
     &__button {
       height: 100%;
       text-align: left;
@@ -559,14 +574,18 @@ defineProps<{
         &::after {
           background: linear-gradient(
             to left,
-            $color-charcoal 66%,
+            $color-secondary 66%,
             transparent
           );
         }
       }
 
+      &:focus {
+        border: solid 1px $color-focus;
+      }
+
       &::after {
-        background: linear-gradient(to left, $color-black 66%, transparent);
+        background: linear-gradient(to left, $color-primary 66%, transparent);
         content: ' ';
         width: 3rem;
         height: 100%;
@@ -582,9 +601,9 @@ defineProps<{
 
     &__options {
       position: absolute;
-      background-color: $color-black;
+      background-color: $color-background;
       z-index: $z-index-dropdown;
-      border: solid 1px $color-charcoal;
+      border: solid 1px $color-secondary;
       border-radius: $radius-md;
       max-height: 24rem;
       overflow-x: hidden;
@@ -603,38 +622,50 @@ defineProps<{
         }
         &-thumb {
           border-radius: $radius-lg;
-          box-shadow: inset 0 0 1rem 1rem $color-grey;
+          box-shadow: inset 0 0 1rem 1rem $color-tertiary;
           border: solid 0.25rem transparent;
         }
+      }
+
+      &:focus-within {
+        border-color: $color-focus;
       }
 
       li {
         align-items: center;
         display: flex;
         position: relative;
-        padding: 0.5rem;
-        padding-right: 1rem;
+        padding: 0.5rem 1rem;
         cursor: pointer;
         white-space: nowrap;
         line-height: $line-height-element;
+        width: 100%;
 
         .icon__selected {
+          color: $color-focus;
           position: absolute;
           height: 1rem;
           width: 1rem;
-          left: 0.5rem;
+          right: 0.25rem;
         }
 
-        &::before {
+        &::after {
           aspect-ratio: 1/1;
           display: flex;
+          flex: 0 0 auto;
           content: '';
           height: 100%;
-          width: 1.25rem;
+          width: 1rem;
+        }
+
+        &.active {
+          background-color: $color-secondary;
+          outline: solid 1px $color-accent;
         }
 
         &:hover {
-          background-color: $color-charcoal;
+          background-color: $color-secondary;
+          outline: 0;
         }
       }
     }

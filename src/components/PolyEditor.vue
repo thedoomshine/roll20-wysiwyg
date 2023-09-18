@@ -37,15 +37,17 @@ import TextTypography from '@tiptap/extension-typography'
 import Underline from '@tiptap/extension-underline'
 import StarterKit from '@tiptap/starter-kit'
 import { Editor, EditorContent, type JSONContent } from '@tiptap/vue-3'
-import { debounce, uid } from 'radash'
+import { uid } from 'radash'
 import { onBeforeUnmount, provide, readonly, ref } from 'vue'
 
 import PolyEditorToolbar from './PolyEditorToolbar.vue'
 
 const props = defineProps<{
-  content?: JSONContent
-  setContentSource: (content: JSONContent) => void
+  modelValue?: JSONContent
 }>()
+
+const emit = defineEmits(['update:modelValue'])
+const randId = ref(uid(12))
 
 const editor = new Editor({
   extensions: [
@@ -75,19 +77,14 @@ const editor = new Editor({
     TextTypography,
     Underline,
   ],
-  content: props?.content,
+  content: props?.modelValue,
   onUpdate: ({ editor }) => {
-    debounce({ delay: 500 }, () => {
-      props.setContentSource(editor.getJSON())
-    })
+    emit('update:modelValue', editor.getJSON())
   },
 })
 
-onBeforeUnmount(() => editor.destroy())
-
-const randId = ref(uid(12))
-
 provide('editor', readonly(editor))
+onBeforeUnmount(() => editor.destroy())
 </script>
 
 <style lang="scss">
@@ -112,8 +109,8 @@ provide('editor', readonly(editor))
   width: 100%;
   padding: 0.5rem;
 
-  background-color: $color-black;
-  border: solid 0.0625rem $color-grey;
+  background-color: $color-background;
+  border: solid 0.0625rem $color-tertiary;
   border-top: 0;
   border-radius: $radius-md;
   border-top-left-radius: 0;
@@ -146,10 +143,10 @@ provide('editor', readonly(editor))
   word-wrap: break-word;
   white-space: pre-wrap;
 
-  border: solid 0.0625rem $color-grey;
+  border: solid 0.0625rem $color-tertiary;
 
   &:focus-within {
-    border-color: $color-silver;
+    border-color: $color-focus;
   }
 
   .ProseMirror {
@@ -163,7 +160,7 @@ provide('editor', readonly(editor))
 
       height: 0;
 
-      color: $color-grey;
+      color: $color-tertiary;
     }
 
     & > :first-child {
@@ -185,7 +182,7 @@ provide('editor', readonly(editor))
 
     h1 {
       font-size: $font-size-h2;
-      border-bottom: solid 0.0625rem $color-grey;
+      border-bottom: solid 0.0625rem $color-tertiary;
     }
 
     h2 {
@@ -278,49 +275,6 @@ provide('editor', readonly(editor))
       p {
         margin: 0;
       }
-
-      input[type='checkbox'] {
-        transform: translateY(-0.075em);
-
-        display: grid;
-        place-content: center;
-
-        width: 1.75em;
-        height: 1.75em;
-
-        color: currentColor;
-
-        appearance: initial;
-        border: solid 0.0625rem $color-grey;
-        border-radius: $radius-md;
-
-        &::before {
-          content: '';
-
-          transform: scale(0);
-
-          width: 1.25em;
-          height: 1.25em;
-
-          background-color: $color-yellow;
-          clip-path: polygon(
-            28% 38%,
-            41% 53%,
-            75% 24%,
-            86% 38%,
-            40% 78%,
-            15% 50%
-          );
-        }
-
-        &:checked::before {
-          transform: scale(1);
-        }
-
-        &:focus-visible {
-          outline: solid 0.0625rem $color-yellow;
-        }
-      }
     }
 
     strong {
@@ -343,7 +297,7 @@ provide('editor', readonly(editor))
       display: flex;
       flex-direction: column;
       padding-left: 0.5rem;
-      border-left: solid 0.25rem $color-grey;
+      border-left: solid 0.25rem $color-tertiary;
       & > :last-child {
         margin-bottom: 0;
       }
@@ -353,7 +307,7 @@ provide('editor', readonly(editor))
       height: 0.25em;
       margin: 2rem 0;
       padding: 0;
-      background-color: $color-grey;
+      background-color: $color-tertiary;
     }
   }
 }

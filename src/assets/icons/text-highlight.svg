@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 32 32">
   <title>highlight</title>
-  <style>--color: currentColor;</style>
   <path d='m6.081 22.66-2.834 2.835-1.828 1.828a1.417 1.417 0 0 0 .992 2.423h5.087l2.834-2.834-4.251-4.251ZM30.58 4.65l-2.238-2.238a1.417 1.417 0 0 0-1.998 0l-4.676 3.245 5.668 5.668 3.245-4.662a1.415 1.415 0 0 0 0-2.012ZM13.166 25.495 25.92 12.742l-5.668-5.668L7.498 19.827v1.417l4.251 4.251h1.417Z' />
   <path
     fill='var(--color)'

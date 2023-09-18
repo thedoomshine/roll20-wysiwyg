@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 32 32">
   <title>text color</title>
-  <style>--color: currentColor;</style>
   <path d='M5.242 25.49 13.982 2h6.01l8.74 23.49h-5.941l-1.382-4.185h-8.844l-1.381 4.185H5.242Zm11.71-17.617-2.901 8.931h5.872l-2.97-8.931Z' />
   <path
     fill='var(--color)'
