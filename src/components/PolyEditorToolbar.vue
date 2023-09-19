@@ -8,14 +8,14 @@
     <!-- font family picker : START -->
     <div class="group listbox">
       <Listbox
-        :modelValue="attributes.fontFamily"
+        :modelValue="fontFamily()"
         @update:modelValue="
           (font) => handleFontFamilyChange(font.value as FontFamily)
         "
       >
         <ListboxButton
           v-slot="{ value }"
-          :style="`font-family: ${attributes.fontFamily.value};`"
+          :style="`font-family: ${fontFamily()};`"
           class="toolbar__button listbox__button"
           z-index="0"
         >
@@ -36,8 +36,8 @@
             :style="`font-family: ${font.value};`"
             :value="font"
           >
-            <li :class="clsx({ active })">
-              {{ font.name }}
+            <li :class="clsx(['option', { active }])">
+              <span>{{ font.name }}</span>
               <PolyIcon
                 v-if="selected"
                 class="icon__selected"
@@ -54,7 +54,7 @@
     <!-- font size input : START -->
     <div class="group listbox">
       <Listbox
-        :modelValue="attributes.fontSize"
+        :modelValue="fontSize()"
         @update:modelValue="
           (value) => handleFontSizeChange(parseInt(value.value) as FontSize)
         "
@@ -83,9 +83,10 @@
               'font-size': getFontSize(fontSize.value),
               'font-weight': getFontWeight(fontSize.value),
             }"
+            :class="clsx(['option', { 'option--title': fontSize.value === 1 }])"
           >
             <li :class="clsx({ active })">
-              {{ fontSize.name }}
+              <span>{{ fontSize.name }}</span>
               <PolyIcon
                 v-if="selected"
                 class="icon__selected"
@@ -102,7 +103,7 @@
     <div class="group text-color">
       <!-- text color picker : START -->
       <PolyColorPicker
-        :modelValue="attributes.textColor"
+        :modelValue="textColor()"
         @update:modelValue="handleTextColorChange"
         buttonClass="toolbar__button"
       >
@@ -117,7 +118,7 @@
 
       <!-- text highlight color picker : START -->
       <PolyColorPicker
-        :modelValue="attributes.textHighlight"
+        :modelValue="textHighlight()"
         @update:modelValue="handleTextHighlightChange"
         buttonClass="toolbar__button"
         transparent
@@ -136,7 +137,7 @@
     <div class="group characteristics">
       <button
         @click="editor?.chain().focus().toggleBold().run()"
-        :aria-pressed="attributes.bold"
+        :aria-pressed="editor?.isActive('bold')"
         type="button"
         class="toolbar__button item bold popup"
         value="bold"
@@ -149,7 +150,7 @@
       </button>
       <button
         @click="editor?.chain().focus().toggleItalic().run()"
-        :aria-pressed="attributes.italic"
+        :aria-pressed="editor?.isActive('italic')"
         type="button"
         class="toolbar__button item italic popup"
         value="italic"
@@ -162,7 +163,7 @@
       </button>
       <button
         @click="editor?.chain().focus().toggleStrike().run()"
-        :aria-pressed="attributes.strikethrough"
+        :aria-pressed="editor?.isActive('strike')"
         type="button"
         class="toolbar__button item strikethrough popup"
         value="strikethrough"
@@ -175,7 +176,7 @@
       </button>
       <button
         @click="editor?.chain().focus().toggleUnderline().run()"
-        :aria-pressed="attributes.underline"
+        :aria-pressed="editor?.isActive('underline')"
         type="button"
         class="toolbar__button item underline popup"
         value="underline"
@@ -186,8 +187,78 @@
         />
         <PolyPopupLabel>Underline</PolyPopupLabel>
       </button>
+      <button
+        @click="editor?.chain().focus().toggleBlockquote().run()"
+        :aria-pressed="editor?.isActive('blockquote')"
+        type="button"
+        class="toolbar__button item blockquote popup"
+        value="blockquote"
+      >
+        <PolyIcon
+          name="quote-left"
+          aria-hidden="true"
+        />
+        <PolyPopupLabel>Blockquote</PolyPopupLabel>
+      </button>
     </div>
     <!-- font style options : END -->
+
+    <!-- html link : START -->
+    <div class="group link">
+      <Popover
+        class="link__popover"
+        v-slot="{ open }"
+      >
+        <PopoverButton
+          :aria-pressed="editor?.isActive('link')"
+          type="button"
+          class="toolbar__button item link popup"
+          value="link"
+        >
+          <PolyIcon
+            v-if="!editor?.isActive('link')"
+            name="link"
+            aria-hidden="true"
+          />
+          <PolyIcon
+            v-else
+            name="link-remove"
+            aria-hidden="true"
+          />
+          <PolyPopupLabel>
+            <template v-if="editor?.isActive('link')">Unl</template>
+            <template v-else>L</template>ink
+          </PolyPopupLabel>
+        </PopoverButton>
+
+        <PopoverPanel
+          v-slot="{ close }"
+          class="link__popover--panel"
+        >
+          <label for="url">Enter your link:</label>
+          <input
+            class="link__popover--input"
+            v-model="tempLink"
+            type="url"
+            name="url"
+            id="url"
+            placeholder="https://example.com"
+            pattern="http(s)*://.*"
+            size="30"
+            required
+          />
+          <button
+            role="button"
+            type="button"
+            class="link__popover--submit-button"
+            @click="handleSetLink(close)"
+          >
+            Save Link
+          </button>
+        </PopoverPanel>
+      </Popover>
+    </div>
+    <!-- html link : END -->
 
     <!-- text alignment group : START -->
     <div
@@ -197,7 +268,7 @@
     >
       <button
         @click="editor?.chain().focus().setTextAlign('left').run()"
-        :aria-checked="attributes.textAlign === 'left'"
+        :aria-checked="editor?.isActive({ textAlign: 'left' })"
         type="button"
         role="radio"
         class="toolbar__button item align-left popup"
@@ -210,7 +281,7 @@
       </button>
       <button
         @click="editor?.chain().focus().setTextAlign('center').run()"
-        :aria-checked="attributes.textAlign === 'center'"
+        :aria-checked="editor?.isActive({ textAlign: 'center' })"
         type="button"
         role="radio"
         class="toolbar__button item align-center popup"
@@ -223,7 +294,7 @@
       </button>
       <button
         @click="editor?.chain().focus().setTextAlign('right').run()"
-        :aria-checked="attributes.textAlign === 'right'"
+        :aria-checked="editor?.isActive({ textAlign: 'right' })"
         type="button"
         role="radio"
         class="toolbar__button item align-right popup"
@@ -236,7 +307,7 @@
       </button>
       <button
         @click="editor?.chain().focus().setTextAlign('justify').run()"
-        :aria-checked="attributes.textAlign === 'justify'"
+        :aria-checked="editor?.isActive({ textAlign: 'justify' })"
         type="button"
         role="radio"
         class="toolbar__button item align-justify popup"
@@ -257,7 +328,7 @@
     >
       <button
         @click="editor?.chain().focus().toggleOrderedList().run()"
-        :aria-checked="attributes.list === 'orderedList'"
+        :aria-checked="editor?.isActive('orderedList')"
         type="button"
         role="radio"
         class="toolbar__button item list-ordered popup"
@@ -270,7 +341,7 @@
       </button>
       <button
         @click="editor?.chain().focus().toggleBulletList().run()"
-        :aria-checked="attributes.list === 'bulletList'"
+        :aria-checked="editor?.isActive('bulletList')"
         type="button"
         role="radio"
         class="toolbar__button item list-bullet popup"
@@ -290,7 +361,7 @@
     >
       <button
         @click="editor?.chain().focus().sinkListItem('listItem').run()"
-        :disabled="!attributes.canSink"
+        :disabled="!editor?.can().sinkListItem('listItem')"
         type="button"
         class="toolbar__button item list-indent popup"
         value="indent"
@@ -303,7 +374,7 @@
       </button>
       <button
         @click="editor?.chain().focus().liftListItem('listItem').run()"
-        :disabled="!attributes.canLift"
+        :disabled="!editor?.can().liftListItem('listItem')"
         type="button"
         class="toolbar__button item list-outdent popup"
       >
@@ -340,19 +411,22 @@ import {
   ListboxButton,
   ListboxOption,
   ListboxOptions,
+  Popover,
+  PopoverButton,
+  PopoverPanel,
+  RadioGroup,
+  RadioGroupLabel,
+  RadioGroupOption,
 } from '@headlessui/vue'
-import { type EditorEvents } from '@tiptap/core'
 import { type Editor } from '@tiptap/vue-3'
 import { useDark } from '@vueuse/core'
 import clsx from 'clsx'
-import { inject, reactive } from 'vue'
+import { type Ref, inject, ref } from 'vue'
 
 import {
   type ColorObj,
   type FontFamily,
-  type FontFamilyObj,
   type FontSize,
-  type FontSizeObj,
   colors,
   fontFamilies,
   fontSizes,
@@ -362,36 +436,14 @@ import PolyColorPicker from './PolyColorPicker.vue'
 import PolyIcon from './PolyIcon.vue'
 import PolyPopupLabel from './PolyPopupLabel.vue'
 
+defineProps<{
+  editorId: string
+}>()
+
 const isDark = useDark()
 
 const editor = inject<Editor>('editor')
-const attributes = reactive<{
-  fontFamily: FontFamilyObj
-  fontSize: FontSizeObj
-  textColor: ColorObj
-  textHighlight: ColorObj
-  bold: boolean
-  italic: boolean
-  strikethrough: boolean
-  underline: boolean
-  textAlign: 'left' | 'center' | 'right' | 'justify'
-  list: 'orderedList' | 'bulletList' | undefined
-  canSink: boolean
-  canLift: boolean
-}>({
-  fontFamily: fontFamilies[0],
-  fontSize: fontSizes[0],
-  textColor: isDark.value ? colors[0] : colors[4],
-  textHighlight: { name: 'transparent', value: 'transparent' },
-  bold: false,
-  italic: false,
-  strikethrough: false,
-  underline: false,
-  textAlign: 'left',
-  list: undefined,
-  canSink: false,
-  canLift: false,
-})
+const tempLink = ref('')
 
 const getFontSize = (size: number) =>
   size > 0 ? `var(--font-size-h${size + 1}` : '1rem'
@@ -415,52 +467,35 @@ const handleTextHighlightChange = (color: ColorObj) => {
   return editor?.chain().focus().setHighlight({ color: color.value }).run()
 }
 
-const updateAttributes = ({ editor }: EditorEvents['transaction']) => {
-  attributes.fontFamily =
-    fontFamilies.find(
-      (font) => font.value === editor.getAttributes('textStyle').fontFamily
-    ) || fontFamilies[0]
-
-  attributes.fontSize =
-    fontSizes.find(
-      (fontSize) => fontSize.value === editor.getAttributes('heading').level
-    ) || fontSizes[0]
-
-  attributes.textColor =
-    colors.find((color) =>
-      editor.isActive('textStyle', { color: color.value })
-    ) || (isDark.value ? colors[0] : colors[4])
-
-  attributes.textHighlight = colors.find((color) =>
-    editor.isActive('highlight', { color: color.value })
-  ) || { name: 'transparent', value: 'transparent' }
-
-  attributes.bold = editor.isActive('bold')
-  attributes.italic = editor.isActive('italic')
-  attributes.strikethrough = editor.isActive('strike')
-  attributes.underline = editor.isActive('underline')
-  attributes.textAlign = editor.isActive({ textAlign: 'center' })
-    ? 'center'
-    : editor.isActive({ textAlign: 'right' })
-    ? 'right'
-    : 'left'
-  attributes.list = editor.isActive('orderedList')
-    ? 'orderedList'
-    : editor.isActive('bulletList')
-    ? 'bulletList'
-    : undefined
-  attributes.canLift = editor.can().liftListItem('listItem')
-  attributes.canSink = editor.can().sinkListItem('listItem')
-
-  return editor
+const handleSetLink = (fn: (ref?: Ref | HTMLElement) => void) => {
+  if (!tempLink.value) {
+    editor?.chain().focus().extendMarkRange('link').unsetLink().run()
+    return fn()
+  }
+  tempLink.value = ''
+  editor?.chain().focus().setLink({ href: tempLink.value }).run()
+  return fn()
 }
 
-editor?.on('selectionUpdate', updateAttributes)
-editor?.on('transaction', updateAttributes)
+const fontFamily = () =>
+  fontFamilies.find(
+    (font) => font.value === editor?.getAttributes('textStyle').fontFamily
+  ) || fontFamilies[0]
 
-defineProps<{
-  editorId: string
-}>()
+const fontSize = () =>
+  fontSizes.find(
+    (fontSize) => fontSize.value === editor?.getAttributes('heading').level
+  ) || fontSizes[0]
+
+const textColor = () =>
+  colors.find(
+    (color) => editor?.isActive('textStyle', { color: color.value })
+  ) || (isDark.value ? colors[0] : colors[4])
+
+const textHighlight = () =>
+  colors.find(
+    (color) => editor?.isActive('highlight', { color: color.value })
+  ) || { name: 'transparent', value: 'transparent' }
 </script>
 
 <style lang="scss">
@@ -489,7 +524,7 @@ defineProps<{
   }
 
   .toolbar__button {
-    border: 1px solid $color-primary;
+    border: solid 0.0625rem $color-primary;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -501,9 +536,10 @@ defineProps<{
     line-height: $line-height-element;
 
     &[aria-pressed='true'],
-    [role='radio'][aria-checked='true'] {
-      border-color: $color-primary;
+    &[role='radio'][aria-checked='true'] {
+      color: $color-accent;
       background-color: $color-secondary;
+      border-color: $color-primary;
     }
 
     &:hover {
@@ -519,22 +555,6 @@ defineProps<{
 
     &:focus {
       border-color: $color-focus;
-    }
-  }
-
-  .spinbutton {
-    display: flex;
-    gap: 0.25rem;
-    padding-top: 0;
-    padding-bottom: 0;
-
-    button {
-      background-color: $color-secondary;
-      font-size: 0.5em;
-
-      &:hover {
-        background-color: $color-tertiary;
-      }
     }
   }
 
@@ -581,7 +601,7 @@ defineProps<{
       }
 
       &:focus {
-        border: solid 1px $color-focus;
+        border: solid 0.0625rem $color-focus;
       }
 
       &::after {
@@ -603,12 +623,14 @@ defineProps<{
       position: absolute;
       background-color: $color-background;
       z-index: $z-index-dropdown;
-      border: solid 1px $color-secondary;
+      border: solid 0.0625rem $color-secondary;
       border-radius: $radius-md;
       max-height: 24rem;
       overflow-x: hidden;
       overflow-y: auto;
       top: calc(100% + 0.25rem);
+      display: grid;
+      grid-auto-rows: minmax(3rem, 1fr);
 
       &::-webkit-scrollbar {
         background-color: transparent;
@@ -631,15 +653,25 @@ defineProps<{
         border-color: $color-focus;
       }
 
-      li {
-        align-items: center;
+      .option {
         display: flex;
+        align-items: center;
         position: relative;
         padding: 0.5rem 1rem;
+        border: solid 0.0625rem transparent;
+        border-top-color: $color-tertiary;
         cursor: pointer;
         white-space: nowrap;
         line-height: $line-height-element;
         width: 100%;
+
+        &:last-of-type {
+          border-bottom-width: 0;
+        }
+
+        &:first-of-type {
+          border-top-width: 0;
+        }
 
         .icon__selected {
           color: $color-focus;
@@ -658,9 +690,21 @@ defineProps<{
           width: 1rem;
         }
 
+        span {
+          align-items: center;
+          justify-content: flex-start;
+          display: flex;
+          width: 100%;
+        }
+
+        &--title span {
+          border-bottom: solid 0.0625rem var(--color-tertiary);
+        }
+
         &.active {
           background-color: $color-secondary;
-          outline: solid 1px $color-accent;
+          border-top-color: $color-accent;
+          border-bottom-color: $color-accent;
         }
 
         &:hover {
@@ -668,6 +712,77 @@ defineProps<{
           outline: 0;
         }
       }
+    }
+  }
+
+  .link__popover {
+    display: flex;
+    justify-content: center;
+    position: relative;
+
+    &--panel {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-start;
+      border: solid 0.0625rem $color-tertiary;
+      padding: 0.5rem;
+      border-radius: $radius-sm;
+      position: absolute;
+      background-color: $color-background;
+      color: $color-text;
+      z-index: $z-index-popover;
+      font-size: $font-size-sm;
+      white-space: nowrap;
+      top: calc(100% + 0.75rem);
+      gap: 0.5rem;
+
+      &::after,
+      &::before {
+        bottom: 100%;
+        left: 50%;
+        border: solid transparent;
+        content: ' ';
+        height: 0;
+        width: 0;
+        position: absolute;
+        pointer-events: none;
+      }
+
+      &::after {
+        border-bottom-color: $color-background;
+        border-width: 10px;
+        margin-left: -10px;
+      }
+
+      &::before {
+        border-bottom-color: $color-tertiary;
+        border-width: 12px;
+        margin-left: -12px;
+      }
+    }
+
+    &--input {
+      &::placeholder {
+        color: $color-tertiary;
+      }
+    }
+
+    &--submit-button {
+      border: solid 0.0625rem $color-accent;
+      color: $color-primary;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem;
+      border-radius: $radius-sm;
+      text-align: center;
+      background: $color-accent;
+      position: relative;
+      line-height: $line-height-element;
+      margin-top: 0.5rem;
+      margin-right: 0;
+      margin-left: auto;
     }
   }
 }

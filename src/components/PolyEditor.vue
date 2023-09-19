@@ -18,11 +18,69 @@
           src="../assets/logo.png"
           alt="Roll20"
       /></a>
+
+      <div class="character-count">
+        <span
+          v-if="percentage >= 50"
+          :style="{
+            color:
+              percentage >= 100
+                ? 'var(--color-danger)'
+                : percentage >= 50
+                ? 'var(--color-accent)'
+                : 'var(--color-text)',
+          }"
+          class="character-count__label"
+          >{{ CHAR_LIMIT - characterCount }}</span
+        >
+        <svg
+          class="character-count__indicator"
+          height="32"
+          width="32"
+          viewBox="0 0 20 20"
+          xmlns="http://www.w3.org/2000/svg"
+          xmlns:xlink="http://www.w3.org/1999/xlink"
+        >
+          <circle
+            r="10"
+            cx="10"
+            cy="10"
+            fill="var(--color-tertiary)"
+          />
+          <circle
+            class="character-count__indicator--gauge"
+            r="5"
+            cx="10"
+            cy="10"
+            fill="transparent"
+            :stroke="
+              percentage >= 100
+                ? 'var(--color-danger)'
+                : percentage >= 50
+                ? 'var(--color-accent)'
+                : 'var(--color-text)'
+            "
+            stroke-width="10"
+            :stroke-dasharray="`calc(${percentage} * ${Math.PI} / 10) ${
+              Math.PI * 10
+            }`"
+            transform="rotate(-90) translate(-20)"
+          />
+          <circle
+            r="6"
+            cx="10"
+            cy="10"
+            fill="var(--color-background)"
+          />
+        </svg>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
+import Blockquote from '@tiptap/extension-blockquote'
+import CharacterCount from '@tiptap/extension-character-count'
 import Color from '@tiptap/extension-color'
 import FontFamily from '@tiptap/extension-font-family'
 import Highlight from '@tiptap/extension-highlight'
@@ -38,19 +96,31 @@ import Underline from '@tiptap/extension-underline'
 import StarterKit from '@tiptap/starter-kit'
 import { Editor, EditorContent, type JSONContent } from '@tiptap/vue-3'
 import { uid } from 'radash'
-import { onBeforeUnmount, provide, readonly, ref } from 'vue'
+import { computed, onBeforeUnmount, provide, readonly, ref } from 'vue'
 
 import PolyEditorToolbar from './PolyEditorToolbar.vue'
+
+const CHAR_LIMIT = 500
 
 const props = defineProps<{
   modelValue?: JSONContent
 }>()
-
 const emit = defineEmits(['update:modelValue'])
 const randId = ref(uid(12))
+const characterCount = ref(0)
+const percentage = computed(() =>
+  Math.min(
+    Math.round((100 / CHAR_LIMIT) * characterCount.value * 100) / 100,
+    100
+  )
+)
 
 const editor = new Editor({
   extensions: [
+    Blockquote,
+    CharacterCount.configure({
+      limit: CHAR_LIMIT,
+    }),
     Color,
     FontFamily,
     Highlight.configure({
@@ -79,6 +149,7 @@ const editor = new Editor({
   ],
   content: props?.modelValue,
   onUpdate: ({ editor }) => {
+    characterCount.value = editor?.storage.characterCount.characters()
     emit('update:modelValue', editor.getJSON())
   },
 })
@@ -104,7 +175,7 @@ onBeforeUnmount(() => editor.destroy())
   flex: 0 0 auto;
   gap: 0.5rem;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
 
   width: 100%;
   padding: 0.5rem;
@@ -129,16 +200,28 @@ onBeforeUnmount(() => editor.destroy())
       }
     }
   }
+
+  .character-count {
+    display: flex;
+    gap: 0.5rem;
+
+    &__indicator--gauge {
+      transition: stroke-dasharray $duration-250 $easing-linear;
+    }
+  }
 }
 
 .editor {
   position: relative;
+  padding: 1rem;
 
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
 
-  min-height: $size-xs;
+  height: 24rem;
+  overflow-y: auto;
+  overflow-x: hidden;
 
   word-wrap: break-word;
   white-space: pre-wrap;
@@ -149,9 +232,23 @@ onBeforeUnmount(() => editor.destroy())
     border-color: $color-focus;
   }
 
+  &::-webkit-scrollbar {
+    background-color: transparent;
+    border: none;
+    width: 1rem;
+    padding: 0.25rem;
+
+    &-track {
+      background-color: transparent;
+    }
+    &-thumb {
+      border-radius: $radius-lg;
+      box-shadow: inset 0 0 1rem 1rem $color-tertiary;
+      border: solid 0.25rem transparent;
+    }
+  }
+
   .ProseMirror {
-    height: 100%;
-    padding: 1rem;
     p.is-editor-empty:first-child::before {
       pointer-events: none;
       content: attr(data-placeholder);
@@ -164,11 +261,11 @@ onBeforeUnmount(() => editor.destroy())
     }
 
     & > :first-child {
-      margin-top: 0 !important;
+      margin-top: 0;
     }
 
     & > :last-child {
-      margin-bottom: 0 !important;
+      margin-bottom: 0;
     }
 
     h1,

@@ -13,7 +13,7 @@
     >
       <div
         :class="[
-          'swatch__active',
+          'swatch--active',
           {
             transparent: modelValue.value === 'transparent',
           },
@@ -21,44 +21,68 @@
         :style="{
           color: activeTextColor,
         }"
+        aria-hidden="true"
+        z-index="-1"
       >
         {{ modelValue.value }}
       </div>
-      <div
+
+      <RadioGroup
         class="swatch__wrapper"
-        role="radiogroup"
+        :modelValue="modelValue"
       >
-        <button
-          v-for="color in allColors"
-          :key="color.name"
-          :style="{ 'background-color': color.value }"
-          :class="
-            clsx('swatch', {
-              active: color.value === modelValue.value,
-              transparent: color.value === 'transparent',
-            })
-          "
-          :aria-checked="color.value === modelValue.value"
-          @click="() => $emit('update:modelValue', color)"
-          type="button"
-          role="radio"
+        <RadioGroupLabel class="swatch__label sr-only"
+          >Color Options</RadioGroupLabel
         >
-          <span class="sr-only">{{ color.name }}</span>
-        </button>
-      </div>
+        <RadioGroupOption
+          v-for="color in allColors"
+          v-slot="{ active, checked }"
+          as="template"
+          :key="randId + color.name"
+          :value="color"
+          :id="randId + color.name"
+        >
+          <button
+            @click="(color) => $emit('update:modelValue', color)"
+            :style="{ 'background-color': color.value }"
+            :class="
+              clsx('swatch', {
+                focused: active,
+                active: checked,
+                transparent: color.value === 'transparent',
+              })
+            "
+            :aria-checked="checked"
+            type="button"
+            role="radio"
+          >
+            <span class="sr-only">{{ color.name }}</span>
+          </button>
+        </RadioGroupOption>
+      </RadioGroup>
     </PopoverPanel>
   </Popover>
 </template>
 
 <script setup lang="ts">
-import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue'
+import {
+  Popover,
+  PopoverButton,
+  PopoverPanel,
+  RadioGroup,
+  RadioGroupLabel,
+  RadioGroupOption,
+} from '@headlessui/vue'
 import clsx from 'clsx'
 import { meetsContrastGuidelines } from 'polished'
+import { uid } from 'radash'
 import { computed } from 'vue'
 
 import { COLORS, colors } from '~/constants'
 
 defineEmits(['update:modelValue'])
+
+const randId = uid(12)
 
 const props = withDefaults(
   defineProps<{
@@ -81,6 +105,7 @@ const allColors = computed(() => {
   }
   return c
 })
+
 const modelValue = computed(() => props.modelValue ?? allColors.value[0])
 
 const activeTextColor = computed(() =>
@@ -116,7 +141,7 @@ const activeTextColor = computed(() =>
     justify-content: center;
     align-items: center;
     background-color: $color-primary;
-    border: 1px solid $color-tertiary;
+    border: solid 0.0625rem $color-tertiary;
     text-transform: uppercase;
     position: absolute;
     z-index: $z-index-popover;
@@ -156,7 +181,7 @@ const activeTextColor = computed(() =>
     max-width: 100%;
   }
 
-  .swatch__active {
+  .swatch--active {
     background-color: var(--active-color);
     display: flex;
     align-items: center;
@@ -179,7 +204,7 @@ const activeTextColor = computed(() =>
   }
 
   .swatch {
-    border: 1px solid $color-tertiary;
+    border: solid 0.0625rem $color-tertiary;
     border-radius: $radius-sm;
     aspect-ratio: 1/1;
     width: 100%;
@@ -190,28 +215,49 @@ const activeTextColor = computed(() =>
     transition-property: transform;
 
     &.active {
-      outline: solid 0.125rem $color-focus;
+      outline: solid 0.125rem $color-complementary;
       outline-offset: 0.0625rem;
     }
 
-    &:hover {
-      transform: scale(1.1);
+    &:focus,
+    &.focused {
+      outline: solid 0.125rem $color-focus;
+    }
+
+    &:hover,
+    &:focus,
+    &.focused {
+      transform: scale(1.075);
     }
   }
 
   .swatch,
-  .swatch__active {
+  .swatch--active {
     &.transparent {
       background-image: conic-gradient(
-        $color-white 0 25%,
-        $color-silver 0 50%,
-        $color-white 0 75%,
-        $color-silver 0
+        $color-silver 0 25%,
+        $color-white 0 50%,
+        $color-silver 0 75%,
+        $color-white 0
       );
 
-      background-size: 1rem 1rem;
-      background-position: center;
+      background-position: 0 0;
       color: $color-black !important;
+      text-shadow:
+        0 0 0 $color-white,
+        0 0 2rem $color-black;
+    }
+  }
+
+  .swatch {
+    &.transparent {
+      background-size: cover;
+    }
+  }
+
+  .swatch--active {
+    &.transparent {
+      background-size: 2.125em 2.125em;
     }
   }
 }

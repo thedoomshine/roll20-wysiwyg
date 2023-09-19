@@ -12,7 +12,7 @@ button:has(.popup-label):hover {
 }
 .popup-label {
   display: block;
-  border: 1px solid $color-tertiary;
+  border: solid 0.0625rem $color-tertiary;
   padding: 0.25rem 0.5rem;
   border-radius: $radius-sm;
   position: absolute;

@@ -94,7 +94,7 @@ dialog::backdrop {
 }
 
 input {
-  border: solid 1px $color-tertiary;
+  border: solid 0.0625rem $color-tertiary;
   border-radius: $radius-sm;
   padding: 0.25rem;
 }

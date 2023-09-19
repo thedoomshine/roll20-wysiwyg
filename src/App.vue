@@ -5,7 +5,7 @@
   />
 
   <div class="output__wrapper">
-    <p>code output:</p>
+    <!-- <p>code output:</p>
     <Codemirror
       v-model="code"
       :extensions="extensions"
@@ -14,7 +14,7 @@
       :tab-size="2"
       :disabled="true"
       :line-wrapping="true"
-    />
+    /> -->
   </div>
 </template>
 
