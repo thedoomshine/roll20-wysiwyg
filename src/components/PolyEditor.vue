@@ -21,17 +21,17 @@
 
       <div class="character-count">
         <span
-          v-if="percentage >= 50"
+          v-show="percentage >= 75"
           :style="{
             color:
               percentage >= 100
                 ? 'var(--color-danger)'
-                : percentage >= 50
+                : percentage >= 75
                 ? 'var(--color-accent)'
                 : 'var(--color-text)',
           }"
           class="character-count__label"
-          >{{ CHAR_LIMIT - characterCount }}</span
+          >{{ characterCount }} / {{ CHAR_LIMIT }}</span
         >
         <svg
           class="character-count__indicator"
@@ -56,7 +56,7 @@
             :stroke="
               percentage >= 100
                 ? 'var(--color-danger)'
-                : percentage >= 50
+                : percentage >= 75
                 ? 'var(--color-accent)'
                 : 'var(--color-text)'
             "
@@ -79,7 +79,6 @@
 </template>
 
 <script lang="ts" setup>
-import Blockquote from '@tiptap/extension-blockquote'
 import CharacterCount from '@tiptap/extension-character-count'
 import Color from '@tiptap/extension-color'
 import FontFamily from '@tiptap/extension-font-family'
@@ -117,7 +116,6 @@ const percentage = computed(() =>
 
 const editor = new Editor({
   extensions: [
-    Blockquote,
     CharacterCount.configure({
       limit: CHAR_LIMIT,
     }),
@@ -249,6 +247,7 @@ onBeforeUnmount(() => editor.destroy())
   }
 
   .ProseMirror {
+    height: 100%;
     p.is-editor-empty:first-child::before {
       pointer-events: none;
       content: attr(data-placeholder);

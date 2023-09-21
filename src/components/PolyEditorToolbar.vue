@@ -4,20 +4,25 @@
     aria-label="Text Formatting"
     class="toolbar"
     role="toolbar"
+    @keydown.right="handleFocusNextItem"
+    @keydown.left="handleFocusPrevItem"
+    @keydown.home="handleFocusFirstItem"
+    @keydown.end="handleFocusLastItem"
   >
     <!-- font family picker : START -->
     <div class="group listbox">
       <Listbox
         :modelValue="fontFamily()"
         @update:modelValue="
-          (font) => handleFontFamilyChange(font.value as FontFamily)
+          ({ value }) => handleFontFamilyChange(value as FontFamily)
         "
       >
         <ListboxButton
           v-slot="{ value }"
+          @focus="handleFirstFocus"
           :style="`font-family: ${fontFamily()};`"
-          class="toolbar__button listbox__button"
-          z-index="0"
+          class="toolbar__button listbox__button toolbar__item"
+          tabindex="0"
         >
           <span>
             {{ value.name }}
@@ -56,13 +61,13 @@
       <Listbox
         :modelValue="fontSize()"
         @update:modelValue="
-          (value) => handleFontSizeChange(parseInt(value.value) as FontSize)
+          ({ value }) => handleFontSizeChange(parseInt(value) as FontSize)
         "
       >
         <ListboxButton
-          class="toolbar__button listbox__button"
+          class="toolbar__button listbox__button toolbar__item"
           v-slot="{ value }"
-          z-index="-1"
+          tabindex="-1"
         >
           <span>
             {{ value.name }}
@@ -105,7 +110,8 @@
       <PolyColorPicker
         :modelValue="textColor()"
         @update:modelValue="handleTextColorChange"
-        buttonClass="toolbar__button"
+        buttonClass="toolbar__button toolbar__item"
+        tabindex="-1"
       >
         <PolyIcon
           slot="icon"
@@ -120,7 +126,8 @@
       <PolyColorPicker
         :modelValue="textHighlight()"
         @update:modelValue="handleTextHighlightChange"
-        buttonClass="toolbar__button"
+        buttonClass="toolbar__button toolbar__item"
+        tabindex="-1"
         transparent
       >
         <PolyIcon
@@ -136,11 +143,12 @@
     <!-- font style options : START -->
     <div class="group characteristics">
       <button
-        @click="editor?.chain().focus().toggleBold().run()"
+        @click="handleClick('toggleBold')"
         :aria-pressed="editor?.isActive('bold')"
         type="button"
-        class="toolbar__button item bold popup"
+        class="toolbar__button toolbar__item bold popup"
         value="bold"
+        tabindex="-1"
       >
         <PolyIcon
           name="text-bold"
@@ -149,11 +157,12 @@
         <PolyPopupLabel>Bold</PolyPopupLabel>
       </button>
       <button
-        @click="editor?.chain().focus().toggleItalic().run()"
+        @click="handleClick('toggleItalic')"
         :aria-pressed="editor?.isActive('italic')"
         type="button"
-        class="toolbar__button item italic popup"
+        class="toolbar__button toolbar__item italic popup"
         value="italic"
+        tabindex="-1"
       >
         <PolyIcon
           name="text-italic"
@@ -162,11 +171,12 @@
         <PolyPopupLabel>Italic</PolyPopupLabel>
       </button>
       <button
-        @click="editor?.chain().focus().toggleStrike().run()"
+        @click="handleClick('toggleStrike')"
         :aria-pressed="editor?.isActive('strike')"
         type="button"
-        class="toolbar__button item strikethrough popup"
+        class="toolbar__button toolbar__item strikethrough popup"
         value="strikethrough"
+        tabindex="-1"
       >
         <PolyIcon
           name="text-strike"
@@ -175,11 +185,12 @@
         <PolyPopupLabel>Strikethrough</PolyPopupLabel>
       </button>
       <button
-        @click="editor?.chain().focus().toggleUnderline().run()"
+        @click="handleClick('toggleUnderline')"
         :aria-pressed="editor?.isActive('underline')"
         type="button"
-        class="toolbar__button item underline popup"
+        class="toolbar__button toolbar__item underline popup"
         value="underline"
+        tabindex="-1"
       >
         <PolyIcon
           name="text-underline"
@@ -188,11 +199,12 @@
         <PolyPopupLabel>Underline</PolyPopupLabel>
       </button>
       <button
-        @click="editor?.chain().focus().toggleBlockquote().run()"
+        @click="handleClick('toggleBlockquote')"
         :aria-pressed="editor?.isActive('blockquote')"
         type="button"
-        class="toolbar__button item blockquote popup"
+        class="toolbar__button toolbar__item blockquote popup"
         value="blockquote"
+        tabindex="-1"
       >
         <PolyIcon
           name="quote-left"
@@ -206,14 +218,16 @@
     <!-- html link : START -->
     <div class="group link">
       <Popover
+        v-slot="{ open, close }"
         class="link__popover"
-        v-slot="{ open }"
       >
         <PopoverButton
+          @keydown.esc="() => close()"
           :aria-pressed="editor?.isActive('link')"
           type="button"
-          class="toolbar__button item link popup"
+          class="toolbar__button toolbar__item link popup"
           value="link"
+          tabindex="-1"
         >
           <PolyIcon
             v-if="!editor?.isActive('link')"
@@ -231,31 +245,40 @@
           </PolyPopupLabel>
         </PopoverButton>
 
-        <PopoverPanel
-          v-slot="{ close }"
-          class="link__popover--panel"
-        >
-          <label for="url">Enter your link:</label>
-          <input
-            class="link__popover--input"
-            v-model="tempLink"
-            type="url"
-            name="url"
-            id="url"
-            placeholder="https://example.com"
-            pattern="http(s)*://.*"
-            size="30"
-            required
-          />
-          <button
-            role="button"
-            type="button"
-            class="link__popover--submit-button"
-            @click="handleSetLink(close)"
-          >
-            Save Link
-          </button>
-        </PopoverPanel>
+        <template v-if="open">
+          <PopoverPanel class="link__popover--panel">
+            <label :for="`${randId}-url`">Enter your link:</label>
+            <input
+              @keydown.esc="() => close()"
+              @keydown.enter.stop.prevent="() => handleSetLink(close)"
+              @vue:mounted="
+                ({ el }: VNode) => {
+                  el?.focus()
+                }
+              "
+              :defaultValue="editor?.getAttributes('link').href"
+              :id="`${randId}-url`"
+              ref="linkInput"
+              class="link__popover--input"
+              name="url"
+              pattern="http(s)*://.*"
+              placeholder="https://example.com"
+              required
+              size="30"
+              type="url"
+              tabindex="-1"
+            />
+            <button
+              @click="() => handleSetLink(close)"
+              @keydown.tab.stop="() => close()"
+              class="link__popover--submit-button"
+              role="button"
+              type="button"
+            >
+              Save Link
+            </button>
+          </PopoverPanel>
+        </template>
       </Popover>
     </div>
     <!-- html link : END -->
@@ -267,11 +290,12 @@
       aria-label="Text Alignment"
     >
       <button
-        @click="editor?.chain().focus().setTextAlign('left').run()"
+        @click="handleClick('setTextAlign', 'left')"
         :aria-checked="editor?.isActive({ textAlign: 'left' })"
         type="button"
         role="radio"
-        class="toolbar__button item align-left popup"
+        class="toolbar__button toolbar__item align-left popup"
+        tabindex="-1"
       >
         <PolyIcon
           name="align-left"
@@ -280,11 +304,12 @@
         <PolyPopupLabel>Text Align Left</PolyPopupLabel>
       </button>
       <button
-        @click="editor?.chain().focus().setTextAlign('center').run()"
+        @click="handleClick('setTextAlign', 'center')"
         :aria-checked="editor?.isActive({ textAlign: 'center' })"
         type="button"
         role="radio"
-        class="toolbar__button item align-center popup"
+        class="toolbar__button toolbar__item align-center popup"
+        tabindex="-1"
       >
         <PolyIcon
           name="align-center"
@@ -293,11 +318,12 @@
         <PolyPopupLabel>Text Align Center</PolyPopupLabel>
       </button>
       <button
-        @click="editor?.chain().focus().setTextAlign('right').run()"
+        @click="handleClick('setTextAlign', 'right')"
         :aria-checked="editor?.isActive({ textAlign: 'right' })"
         type="button"
         role="radio"
-        class="toolbar__button item align-right popup"
+        class="toolbar__button toolbar__item align-right popup"
+        tabindex="-1"
       >
         <PolyIcon
           name="align-right"
@@ -306,11 +332,12 @@
         <PolyPopupLabel>Text Align Right</PolyPopupLabel>
       </button>
       <button
-        @click="editor?.chain().focus().setTextAlign('justify').run()"
+        @click="handleClick('setTextAlign', 'justify')"
         :aria-checked="editor?.isActive({ textAlign: 'justify' })"
         type="button"
         role="radio"
-        class="toolbar__button item align-justify popup"
+        class="toolbar__button toolbar__item align-justify popup"
+        tabindex="-1"
       >
         <PolyIcon
           name="align-justify"
@@ -327,11 +354,12 @@
       aria-label="List Formatting"
     >
       <button
-        @click="editor?.chain().focus().toggleOrderedList().run()"
+        @click="handleClick('toggleOrderedList')"
         :aria-checked="editor?.isActive('orderedList')"
         type="button"
         role="radio"
-        class="toolbar__button item list-ordered popup"
+        class="toolbar__button toolbar__item list-ordered popup"
+        tabindex="-1"
       >
         <PolyIcon
           name="list-ordered"
@@ -340,11 +368,12 @@
         <PolyPopupLabel>Ordered List</PolyPopupLabel>
       </button>
       <button
-        @click="editor?.chain().focus().toggleBulletList().run()"
+        @click="handleClick('toggleBulletList')"
         :aria-checked="editor?.isActive('bulletList')"
         type="button"
         role="radio"
-        class="toolbar__button item list-bullet popup"
+        class="toolbar__button toolbar__item list-bullet popup"
+        tabindex="-1"
       >
         <PolyIcon
           name="list-bullet"
@@ -360,11 +389,12 @@
       aria-label="List Indentation"
     >
       <button
-        @click="editor?.chain().focus().sinkListItem('listItem').run()"
-        :disabled="!editor?.can().sinkListItem('listItem')"
+        @click="handleClick('sinkListItem', 'listItem')"
+        :aria-disabled="!editor?.can().sinkListItem('listItem')"
         type="button"
-        class="toolbar__button item list-indent popup"
+        class="toolbar__button toolbar__item list-indent popup"
         value="indent"
+        tabindex="-1"
       >
         <PolyIcon
           name="list-indent"
@@ -373,10 +403,11 @@
         <PolyPopupLabel>Indent List</PolyPopupLabel>
       </button>
       <button
-        @click="editor?.chain().focus().liftListItem('listItem').run()"
-        :disabled="!editor?.can().liftListItem('listItem')"
+        @click="handleClick('liftListItem', 'listItem')"
+        :aria-disabled="!editor?.can().liftListItem('listItem')"
         type="button"
-        class="toolbar__button item list-outdent popup"
+        class="toolbar__button toolbar__item list-outdent popup"
+        tabindex="-1"
       >
         <PolyIcon
           name="list-outdent"
@@ -389,10 +420,11 @@
     <!-- clear formatting : START -->
     <div class="group">
       <button
-        @click="editor?.chain().focus().clearNodes().unsetAllMarks().run()"
+        @click="handleClick(['clearNodes', 'unsetAllMarks'])"
         type="button"
-        class="toolbar__button item clear popup"
+        class="toolbar__button toolbar__item clear popup"
         value="clear"
+        tabindex="-1"
       >
         <PolyIcon
           name="format-clear"
@@ -414,14 +446,12 @@ import {
   Popover,
   PopoverButton,
   PopoverPanel,
-  RadioGroup,
-  RadioGroupLabel,
-  RadioGroupOption,
 } from '@headlessui/vue'
-import { type Editor } from '@tiptap/vue-3'
+import { AnyCommands, type Editor } from '@tiptap/vue-3'
 import { useDark } from '@vueuse/core'
 import clsx from 'clsx'
-import { type Ref, inject, ref } from 'vue'
+import { first, isArray, last, uid } from 'radash'
+import { type Ref, type VNode, inject, ref } from 'vue'
 
 import {
   type ColorObj,
@@ -443,7 +473,9 @@ defineProps<{
 const isDark = useDark()
 
 const editor = inject<Editor>('editor')
-const tempLink = ref('')
+const randId = uid(12)
+const lastFocused = ref<HTMLElement | null>(null)
+const linkInput = ref<HTMLInputElement | null>(null)
 
 const getFontSize = (size: number) =>
   size > 0 ? `var(--font-size-h${size + 1}` : '1rem'
@@ -451,30 +483,107 @@ const getFontWeight = (size: number) => (size > 0 ? '800' : 'normal')
 
 const handleFontSizeChange = (level: FontSize) => {
   return level === 0
-    ? editor?.chain().focus().toggleNode('heading', 'paragraph').run()
-    : editor?.chain().focus().toggleHeading({ level }).run()
+    ? handleClick('toggleNode', ['heading', 'paragraph'])
+    : handleClick('toggleHeading', { level })
 }
 
 const handleFontFamilyChange = (font: FontFamily) => {
-  return editor?.chain().focus().setFontFamily(font).run()
+  handleClick('setFontFamily', font)
 }
 
 const handleTextColorChange = (color: ColorObj) => {
-  return editor?.chain().focus().setColor(color.value).run()
+  handleClick('setColor', color.value)
 }
 
 const handleTextHighlightChange = (color: ColorObj) => {
-  return editor?.chain().focus().setHighlight({ color: color.value }).run()
+  handleClick('setHighlight', { color: color.value })
 }
 
 const handleSetLink = (fn: (ref?: Ref | HTMLElement) => void) => {
-  if (!tempLink.value) {
-    editor?.chain().focus().extendMarkRange('link').unsetLink().run()
+  if (!linkInput?.value) return
+  if (!linkInput?.value?.value) {
+    handleClick(['extendMarkRange', 'unsetLink'], 'link')
     return fn()
   }
-  tempLink.value = ''
-  editor?.chain().focus().setLink({ href: tempLink.value }).run()
+  handleClick('setLink', { href: linkInput.value.value })
   return fn()
+}
+
+const handleClick = (fnName: string | string[], ...args: any) => {
+  if (!editor) return
+
+  const commands = editor.extensionManager.commands as AnyCommands
+  const chain = editor.chain()
+
+  if (isArray(fnName)) {
+    fnName.forEach((fn) => {
+      chain.command(commands[fn](...args))
+    })
+  } else {
+    chain.command(commands[fnName](...args))
+  }
+
+  chain.run()
+}
+
+const getAllItems = () =>
+  Array.from(document.querySelectorAll('.toolbar__item')) as HTMLButtonElement[]
+
+const getCurrentItemIndex = (element: HTMLButtonElement) =>
+  getAllItems().indexOf(element)
+
+const setLastFocused = (element: HTMLElement) => {
+  lastFocused.value = element
+}
+
+const handleFocusNextItem = (event: KeyboardEvent) => {
+  const target = event.target as HTMLButtonElement
+  if (!target) return
+  const allItems = getAllItems()
+  const currentIndex = getCurrentItemIndex(target)
+  const nextItem =
+    allItems[currentIndex < allItems.length - 1 ? currentIndex + 1 : 0]
+  setLastFocused(nextItem)
+  nextItem.focus()
+}
+
+const handleFocusPrevItem = (event: KeyboardEvent) => {
+  const target = event.target as HTMLButtonElement
+  if (!target) return
+  const allItems = getAllItems()
+  const currentIndex = getCurrentItemIndex(target)
+  const prevItem =
+    allItems[currentIndex > 0 ? currentIndex - 1 : allItems.length - 1]
+  setLastFocused(prevItem)
+  prevItem.focus()
+}
+
+const handleFocusFirstItem = () => {
+  const firstItem = first(getAllItems())
+  if (firstItem) {
+    setLastFocused(firstItem)
+    firstItem?.focus()
+  }
+}
+
+const handleFocusLastItem = () => {
+  const lastItem = last(getAllItems())
+  if (lastItem) {
+    setLastFocused(lastItem)
+    lastItem?.focus()
+  }
+}
+
+const handleFirstFocus = (event: FocusEvent) => {
+  if (
+    !event.target ||
+    !lastFocused.value ||
+    lastFocused.value === event.target
+  ) {
+    return
+  }
+
+  lastFocused?.value.focus()
 }
 
 const fontFamily = () =>
@@ -540,6 +649,9 @@ const textHighlight = () =>
       color: $color-accent;
       background-color: $color-secondary;
       border-color: $color-primary;
+      &:focus {
+        border-color: $color-focus;
+      }
     }
 
     &:hover {
@@ -766,10 +878,14 @@ const textHighlight = () =>
       &::placeholder {
         color: $color-tertiary;
       }
+
+      &:focus {
+        border-color: $color-focus;
+      }
     }
 
     &--submit-button {
-      border: solid 0.0625rem $color-accent;
+      border: solid 0.0625rem $color-secondary;
       color: $color-primary;
       display: flex;
       align-items: center;
@@ -783,6 +899,11 @@ const textHighlight = () =>
       margin-top: 0.5rem;
       margin-right: 0;
       margin-left: auto;
+      font-weight: 800;
+
+      &:focus {
+        border-color: $color-focus;
+      }
     }
   }
 }

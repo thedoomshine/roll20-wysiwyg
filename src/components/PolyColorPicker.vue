@@ -1,66 +1,86 @@
 <template>
-  <Popover class="color-picker">
-    <PopoverButton
-      :style="{ '--color': modelValue.value }"
-      :class="clsx(buttonClass, 'popover__button')"
-    >
-      <slot />
+  <Popover
+    v-slot="{ open }"
+    class="color-picker"
+  >
+    <PopoverButton as="template">
+      <button
+        :style="{ '--color': modelValue.value }"
+        :class="clsx(buttonClass, 'popover__button')"
+        :tabindex="tabindex"
+        ref="popoverButton"
+        type="button"
+        role="button"
+      >
+        <slot />
+      </button>
     </PopoverButton>
 
-    <PopoverPanel
-      class="color-picker__popover-panel"
-      :style="{ '--active-color': modelValue.value }"
-    >
-      <div
-        :class="[
-          'swatch--active',
-          {
-            transparent: modelValue.value === 'transparent',
-          },
-        ]"
-        :style="{
-          color: activeTextColor,
-        }"
-        aria-hidden="true"
-        z-index="-1"
+    <template v-if="open">
+      <PopoverPanel
+        v-slot="{ close }"
+        :key="randId"
+        :style="{ '--active-color': modelValue.value }"
+        class="color-picker__popover-panel"
+        static
       >
-        {{ modelValue.value }}
-      </div>
+        <div
+          :class="[
+            'swatch--active',
+            {
+              transparent: modelValue.value === 'transparent',
+            },
+          ]"
+          :style="{
+            color: activeTextColor,
+          }"
+          aria-hidden="true"
+        >
+          {{ modelValue.value }}
+        </div>
 
-      <RadioGroup
-        class="swatch__wrapper"
-        :modelValue="modelValue"
-      >
-        <RadioGroupLabel class="swatch__label sr-only"
-          >Color Options</RadioGroupLabel
+        <RadioGroup
+          class="swatch__wrapper"
+          :modelValue="modelValue"
         >
-        <RadioGroupOption
-          v-for="color in allColors"
-          v-slot="{ active, checked }"
-          as="template"
-          :key="randId + color.name"
-          :value="color"
-          :id="randId + color.name"
-        >
-          <button
-            @click="(color) => $emit('update:modelValue', color)"
-            :style="{ 'background-color': color.value }"
-            :class="
-              clsx('swatch', {
-                focused: active,
-                active: checked,
-                transparent: color.value === 'transparent',
-              })
-            "
-            :aria-checked="checked"
-            type="button"
-            role="radio"
+          <RadioGroupLabel class="swatch__label sr-only"
+            >Color Options</RadioGroupLabel
           >
-            <span class="sr-only">{{ color.name }}</span>
-          </button>
-        </RadioGroupOption>
-      </RadioGroup>
-    </PopoverPanel>
+          <RadioGroupOption
+            v-for="color in allColors"
+            v-slot="{ active, checked }"
+            :key="randId + color.name"
+            :id="randId + color.name"
+            :value="color"
+            as="template"
+          >
+            <button
+              @click="handleClick(color, close)"
+              @keydown.right.stop="handleFocusNextItem"
+              @keydown.left.stop="handleFocusPrevItem"
+              @keydown.home.stop="handleFocusFirstItem"
+              @keydown.end.stop="handleFocusLastItem"
+              @keydown.esc.stop="handleEscape(close)"
+              @vue:mounted="() => getAllItems()[0].focus()"
+              :style="{ 'background-color': color.value }"
+              :class="
+                clsx('swatch', {
+                  focused: active,
+                  active: checked,
+                  transparent: color.value === 'transparent',
+                })
+              "
+              :aria-checked="checked"
+              role="radio"
+              type="button"
+              tabindex="-1"
+            >
+              <span class="sr-only">{{ color.name }}</span>
+            </button>
+          </RadioGroupOption>
+        </RadioGroup>
+      </PopoverPanel>
+    </template>
   </Popover>
 </template>
 
@@ -75,28 +95,34 @@ import {
 } from '@headlessui/vue'
 import clsx from 'clsx'
 import { meetsContrastGuidelines } from 'polished'
-import { uid } from 'radash'
-import { computed } from 'vue'
+import { first, last, uid } from 'radash'
+import { type Ref, type VNodeRef, computed, nextTick, ref, watch } from 'vue'
 
-import { COLORS, colors } from '~/constants'
+import { COLORS, type ColorObj, colors } from '~/constants'
 
-defineEmits(['update:modelValue'])
+type CloseFn = (ref?: Ref | HTMLElement) => void
 
 const randId = uid(12)
+const popoverButton = ref<VNodeRef | null>(null)
+const isOpen = ref(false)
 
 const props = withDefaults(
   defineProps<{
     buttonClass?: string
     transparent?: boolean
+    tabindex?: number | string
     modelValue?: {
       name: string
       value: string
     }
   }>(),
   {
+    tabindex: 0,
     transparent: false,
   }
 )
+
+const emit = defineEmits(['update:modelValue'])
 
 const allColors = computed(() => {
   const c = [...colors]
@@ -113,6 +139,51 @@ const activeTextColor = computed(() =>
     ? 'var(--color-black)'
     : 'var(--color-white)'
 )
+
+const getAllItems = () =>
+  Array.from(document.querySelectorAll('.swatch')) as HTMLButtonElement[]
+
+const getCurrentItemIndex = (element: HTMLButtonElement) =>
+  getAllItems().indexOf(element)
+
+const handleFocusNextItem = (event: KeyboardEvent) => {
+  const target = event.target as HTMLButtonElement
+  if (!target) return
+  const allItems = getAllItems()
+  const currentIndex = getCurrentItemIndex(target)
+  allItems[currentIndex < allItems.length - 1 ? currentIndex + 1 : 0].focus()
+}
+
+const handleFocusPrevItem = (event: KeyboardEvent) => {
+  const target = event.target as HTMLButtonElement
+  if (!target) return
+  const allItems = getAllItems()
+  const currentIndex = getCurrentItemIndex(target)
+  allItems[currentIndex > 0 ? currentIndex - 1 : allItems.length - 1].focus()
+}
+
+const handleFocusFirstItem = () => {
+  first(getAllItems())?.focus()
+}
+
+const handleFocusLastItem = () => {
+  last(getAllItems())?.focus()
+}
+
+const handleEscape = (closeFn: CloseFn) => {
+  closeFn(popoverButton)
+}
+
+const handleClick = (color: ColorObj, closeFn: CloseFn) => {
+  emit('update:modelValue', color)
+  nextTick(() => {
+    closeFn(popoverButton)
+  })
+}
+
+watch(isOpen, (isNowOpen) => {
+  console.log(isNowOpen)
+})
 </script>
 
 <style lang="scss">
