@@ -902,7 +902,9 @@ const textHighlight = () =>
       font-weight: 800;
 
       &:focus {
-        border-color: $color-focus;
+        border-color: $color-primary;
+        outline: solid 0.0625rem $color-focus;
+        outline-offset: 0.0625rem;
       }
     }
   }
